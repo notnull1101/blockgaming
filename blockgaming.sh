@@ -11,6 +11,9 @@
 # Block Internet Connection
 function block_traffic(){
 
+    # Get Device list 
+    get_macaddress
+
     # Only Block Traffic from 20:00 >= 08:00 i.e From 8pm to 8am 
     # else allow traffic
     if [[ $get_hour -ge $block_hours ]] || [[ $get_hour -eq 00 ]] || [[ $get_hour -le $allowed_hours ]]; then
@@ -56,8 +59,46 @@ function allow_traffic(){
     echo "Flushing Tables"
 }
 
-# Block Devices MAC ADDRESS 
-block_devices=( "28:18:78:21:65:D8" "CC:78:5F:DD:08:E2" )
+# Get Mac Address
+function get_macaddress(){
+
+    # Check if $device_list exist 
+    # if it does not exist exit script
+    if [[ -f $device_list ]]; then
+        # List Devices
+        while read line; do 
+            
+            # Only Parse Line that do not have comments on them
+            if [[ ! $line =~ ^# ]]; then
+                
+                # Explode Line 
+                IFS="|" read -a device <<< "$line"
+
+                # Macc Address 
+                local mac_address=${device[0]}
+
+                # Device Name 
+                local device_name=${device[1]}
+
+                # Append Mac Address to block_devices arrat 
+                block_devices+=( $mac_address )
+
+            fi
+
+        done < $device_list
+    else 
+        echo "$device_list missing "
+        exit
+    fi
+
+}
+
+
+# Block Devices MAC ADDRESS Array
+declare -a block_devices
+
+# Device List
+device_list="devices.list"
 
 # Temp File
 temp_file="/tmp/blockgaming"
