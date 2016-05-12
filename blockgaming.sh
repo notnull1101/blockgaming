@@ -28,8 +28,11 @@ function block_traffic(){
                 # MAC Address 
                 mac_address=${block_devices[$i]}
                 
+                # Comment 
+                comment="Device name: [${block_name[$i]}]"
+
                 # IP Tables Rules
-                iptables_rule="-I blockgaming -m mac --mac-source ${mac_address} -j DROP"
+                iptables_rule="-I blockgaming -m mac --mac-source ${mac_address} -m comment --comment \"$comment\" -j DROP"
 
                 # Block Traffic
                 echo  $iptables_rule
@@ -83,6 +86,9 @@ function get_macaddress(){
                 # Append Mac Address to block_devices arrat 
                 block_devices+=( $mac_address )
 
+                # Update Block Deivce name 
+                block_name+=(  $device_name )
+
             fi
 
         done < $device_list
@@ -97,8 +103,14 @@ function get_macaddress(){
 # Block Devices MAC ADDRESS Array
 declare -a block_devices
 
+# Block Device name
+declare -a block_name
+
+# App Path
+app_path="`dirname \"$0\"`"
+
 # Device List
-device_list="devices.list"
+device_list="${app_path}/devices.list"
 
 # Temp File
 temp_file="/tmp/blockgaming"
