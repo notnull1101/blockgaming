@@ -2,11 +2,20 @@
 # Create Iptables Chain 
 # iptables -L -n blockgaming
 # Add Chain to iptables rules 
-# iptables -I INPUT 2 -j blockgaming
+# iptables -I INPUT 1 -j blockgaming
 #
 # Add Cron job 
 # Block Gaming
 # */6 *   * * * root /root/bin/blockgaming.sh &> /dev/null
+
+# Debug Time 
+function debug_time() {
+
+    echo "get_hour: $get_hour"
+    echo "block_hours: $block_hours"
+    echo "allowed_hours: $allowed_hours"
+}
+
 
 # Block Internet Connection
 function block_traffic(){
@@ -16,7 +25,8 @@ function block_traffic(){
 
     # Only Block Traffic from 20:00 >= 08:00 i.e From 8pm to 8am 
     # else allow traffic
-    if [[ $get_hour -ge $block_hours ]] || [[ $get_hour -eq 00 ]] || [[ $get_hour -le $allowed_hours ]]; then
+    if [[ $get_hour -ge $block_hours ]] || [[ $get_hour -eq 000 ]] || [[ $get_hour -le $allowed_hours ]]; then
+
         # Check if temp files exist 
         # if temp file exist do not do anything 
         # Else insert iptables rules and create the $temp_file
@@ -39,6 +49,12 @@ function block_traffic(){
 
 
             done
+           
+            # Allow Traffic only to local network
+            if [[ $allow_local =~ [YyEeSs] ]]; then
+
+                local_network_rules
+            fi
 
             # Create Temp File
             touch $temp_file
@@ -58,8 +74,7 @@ function allow_traffic(){
     rm -rf $temp_file
 
     # Flush blockgaming Chain
-    # iptables -F blockgaming
-    echo "Flushing Tables"
+    iptables -F blockgaming
 }
 
 # Get Mac Address
@@ -99,12 +114,31 @@ function get_macaddress(){
 
 }
 
+# local network rules 
+function local_network_rules() {
+    # Add Rules Here 
+    # Only Allow Access to plex
+    iptables -I blockgaming -p tcp -d 192.168.0.0/16 --dport 32400 -j ACCEPT
+    iptables -I blockgaming -p udp -d 192.168.0.0/16 --dport 32414 -j ACCEPT
+    iptables -I blockgaming -p udp -d 192.168.0.0/16 --dport 32413 -j ACCEPT
+    iptables -I blockgaming -p udp -d 192.168.0.0/16 --dport 32412 -j ACCEPT
+    iptables -I blockgaming -p udp -d 192.168.0.0/16 --dport 32410 -j ACCEPT
+    iptables -I blockgaming -p tcp -d 192.168.0.0/16 --dport 32469 -j ACCEPT
+    iptables -I blockgaming -p tcp -d 192.168.0.0/16 --dport 8324 -j ACCEPT
+    iptables -I blockgaming -p udp -d 192.168.0.0/16 --dport 5353 -j ACCEPT
+    iptables -I blockgaming -p tcp -d 192.168.0.0/16 --dport 3005 -j ACCEPT
+    iptables -I blockgaming -p udp -d 192.168.0.0/16 --dport 1900 -j ACCEPT
+    
+}
 
 # Block Devices MAC ADDRESS Array
 declare -a block_devices
 
 # Block Device name
 declare -a block_name
+
+# Allow only local network 
+allow_local="yes"
 
 # App Path
 app_path="`dirname \"$0\"`"
@@ -113,10 +147,10 @@ app_path="`dirname \"$0\"`"
 device_list="${app_path}/devices.list"
 
 # Temp File
-temp_file="/tmp/blockgaming"
+temp_file="${app_path}/blockgaming"
 
 # Get Time
-get_hour=$( date +%-H )
+get_hour=$( date +%-H%M )
  
 # Get Dat if the week 
 # day of week (1..7); 1 is Monday
@@ -131,11 +165,14 @@ get_day=$( date +%u )
 
 # Military time 20:00 8PM
 # Blackout Hours 
-block_hours=20
+block_hours=2000
 
 # Military Time 08:00 8AM
 # Allowed Time
-allowed_hours=8
+allowed_hours=1400
+
+# Uncomment To Debug Time
+debug_time
 
 # Only Block Monday - Thursday, and Sunday
 case $get_day in
