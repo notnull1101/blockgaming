@@ -42,7 +42,7 @@ function block_traffic(){
                 comment="Device name: [${block_name[$i]}]"
 
                 # IP Tables Rules
-                iptables_rule="-I blockgaming -m mac --mac-source ${mac_address} -m comment --comment \"$comment\" -j DROP"
+                iptables -I blockgaming -m mac --mac-source ${mac_address} -m comment --comment "$comment" -m state --state NEW,RELATED,ESTABLISHED -j DROP
 
                 # Block Traffic
                 echo  $iptables_rule
@@ -52,7 +52,8 @@ function block_traffic(){
            
             # Allow Traffic only to local network
             if [[ $allow_local =~ [YyEeSs] ]]; then
-
+                    
+                # Allow Traffic to Local Host
                 local_network_rules
             fi
 
@@ -116,6 +117,7 @@ function get_macaddress(){
 
 # local network rules 
 function local_network_rules() {
+
     # Add Rules Here 
     # Only Allow Access to plex
     iptables -I blockgaming -p tcp -d 192.168.0.0/16 --dport 32400 -j ACCEPT
@@ -137,7 +139,7 @@ declare -a block_devices
 # Block Device name
 declare -a block_name
 
-# Allow only local network 
+# Allow traffic to local network
 allow_local="yes"
 
 # App Path
@@ -172,7 +174,7 @@ block_hours=2000
 allowed_hours=1400
 
 # Uncomment To Debug Time
-debug_time
+#debug_time
 
 # Only Block Monday - Thursday, and Sunday
 case $get_day in
